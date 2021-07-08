@@ -1,0 +1,48 @@
+﻿<UserControl x:Class="DialogueProgrammer.Views.HandleWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DialogueProgrammer.Views" xmlns:i="http://schemas.microsoft.com/xaml/behaviors" xmlns:converters="clr-namespace:DialogueProgrammer.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Styles/MainDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converters:BoolVisibilityConverter x:Key="_boolVisConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="25"/>
+        </Grid.ColumnDefinitions>
+        <Rectangle Grid.Row="0" Grid.Column="0" Style="{StaticResource windowHandle}" Grid.ColumnSpan="2">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="MouseMove">
+                    <i:InvokeCommandAction Command="{Binding OnMouseMove}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseLeave">
+                    <i:InvokeCommandAction Command="{Binding OnMouseLeave}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseDown">
+                    <i:InvokeCommandAction Command="{Binding OnMouseDown}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="MouseUp">
+                    <i:InvokeCommandAction Command="{Binding OnMouseUp}" PassEventArgsToCommand="True"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+        </Rectangle>
+        <Button Background="Red" Content="X" Grid.Row="0" Grid.Column="1" Command="{Binding OnWindowClose}" Visibility="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:HandleWindow}}, Path=CloseVisibility, Converter={StaticResource _boolVisConverter}}"/>
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BorderBrush="Black" BorderThickness="2">
+            <ContentPresenter  Content="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:HandleWindow}}, Path=AdditionalContent}" />
+        </Border>
+    </Grid>
+</UserControl>

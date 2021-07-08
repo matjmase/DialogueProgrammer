@@ -1,0 +1,208 @@
+﻿<Window x:Class="DialogueProgrammer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DialogueProgrammer" xmlns:views="clr-namespace:DialogueProgrammer.Views" xmlns:converters="clr-namespace:DialogueProgrammer.Converters" xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Window.DataContext>
+        <local:MainWindowVM/>
+    </Window.DataContext>
+    <Window.Resources>
+
+        <converters:ValueConverterGroup x:Key="_typeToFalseConverter">
+            <converters:TypeBoolConverter/>
+            <converters:InvertBoolConverter/>
+        </converters:ValueConverterGroup>
+        <converters:BoolVisibilityConverter x:Key="_boolVisConverter"/>
+    </Window.Resources>
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="MouseMove">
+            <i:InvokeCommandAction Command="{Binding WindowMouseMove}" PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseUp">
+            <i:InvokeCommandAction Command="{Binding WindowMouseUp}" PassEventArgsToCommand="True"/>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Border Height="{Binding CanvasSize.OutputHeight}" Width="{Binding CanvasSize.OutputWidth}" ClipToBounds="True" BorderBrush="Black" BorderThickness="2">
+                <Viewbox HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Grid Height="{Binding CanvasSize.BaseHeight}" Width="{Binding CanvasSize.BaseWidth}">
+                        <ItemsControl VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ItemsSource="{Binding NodeWindows}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <views:HandleWindow DataContext="{Binding }" CloseVisibility="{Binding Node, Converter={StaticResource _typeToFalseConverter}, ConverterParameter={x:Type views:DialogueNodeSeedVM}}" Width="300">
+                                        <views:HandleWindow.AdditionalContent>
+                                            <views:DialogueNode DataContext="{Binding Node}"/>
+                                        </views:HandleWindow.AdditionalContent>
+                                    </views:HandleWindow>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding CanvasTop}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+
+
+                        <ItemsControl ItemsSource="{Binding ConnectionLines}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid IsHitTestVisible="False">
+                                        <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathGeometry.Figures>
+                                                        <PathFigureCollection>
+                                                            <PathFigure StartPoint="{ Binding StartPoint}">
+                                                                <PathFigure.Segments>
+                                                                    <PathSegmentCollection>
+                                                                        <BezierSegment Point1="{Binding Reference1}" Point2="{Binding Reference2}" Point3="{Binding EndPoint}" />
+                                                                    </PathSegmentCollection>
+                                                                </PathFigure.Segments>
+                                                            </PathFigure>
+                                                        </PathFigureCollection>
+                                                    </PathGeometry.Figures>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+
+
+                                        <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure StartPoint="{Binding EndPoint}">
+                                                        <LineSegment Point="{Binding EndPointLowerArrow}" />
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+
+
+                                        <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure StartPoint="{Binding EndPoint}">
+                                                        <LineSegment Point="{Binding EndPointUpperArrow}" />
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Canvas Grid.Row="0" Visibility="{Binding LinkingProgress.LinkingInProgress, Converter={StaticResource _boolVisConverter}}">
+                            <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                <Path.Data>
+                                    <PathGeometry>
+                                        <PathGeometry.Figures>
+                                            <PathFigureCollection>
+                                                <PathFigure StartPoint="{ Binding PreviewLine.StartPoint}">
+                                                    <PathFigure.Segments>
+                                                        <PathSegmentCollection>
+                                                            <BezierSegment Point1="{Binding PreviewLine.Reference1}" Point2="{Binding PreviewLine.Reference2}" Point3="{Binding PreviewLine.EndPoint}" />
+
+                                                        </PathSegmentCollection>
+                                                    </PathFigure.Segments>
+                                                </PathFigure>
+
+                                            </PathFigureCollection>
+                                        </PathGeometry.Figures>
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
+
+                            <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                <Path.Data>
+                                    <PathGeometry>
+                                        <PathFigure StartPoint="{Binding PreviewLine.EndPoint}">
+                                            <LineSegment Point="{Binding PreviewLine.EndPointLowerArrow}" />
+                                        </PathFigure>
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
+
+
+                            <Path Stroke="Black" StrokeThickness="1" IsHitTestVisible="False">
+                                <Path.Data>
+                                    <PathGeometry>
+                                        <PathFigure StartPoint="{Binding PreviewLine.EndPoint}">
+                                            <LineSegment Point="{Binding PreviewLine.EndPointUpperArrow}" />
+                                        </PathFigure>
+                                    </PathGeometry>
+                                </Path.Data>
+                            </Path>
+                        </Canvas>
+                    </Grid>
+                </Viewbox>
+            </Border>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+
+            <Button Grid.Column="0" Content="Add Node" Command="{Binding AddNodeCommand}"></Button>
+
+
+            <Grid Grid.Column="1" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="+ Width" Command="{Binding CanvasSizeIncWidthCommand}"></Button>
+                <Button Grid.Column="1" Content="- Width" Command="{Binding CanvasSizeDecWidthCommand}"></Button>
+            </Grid>
+
+
+            <Grid Grid.Column="2" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="+ Height" Command="{Binding CanvasSizeIncHeightCommand}"></Button>
+                <Button Grid.Column="1" Content="- Height" Command="{Binding CanvasSizeDecHeightCommand}"></Button>
+            </Grid>
+
+
+            <Grid Grid.Column="3" HorizontalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="+ Zoom" Command="{Binding ZoomIncCommand}"></Button>
+                <Button Grid.Column="1" Content="- Zoom" Command="{Binding ZoomDecCommand}"></Button>
+            </Grid>
+
+            <Button Grid.Column="4" Content="Export" Command="{Binding ExportFileCommand}"></Button>
+        </Grid>
+    </Grid>
+</Window>
