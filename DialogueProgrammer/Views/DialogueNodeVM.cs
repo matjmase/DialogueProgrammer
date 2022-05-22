@@ -1,4 +1,5 @@
 ﻿using DialogueProgrammer.Common;
+using DialogueProgrammer.Serialization.Export;
 using DialogueProgrammer.Views.SubViews;
 using System;
 using System.Collections.Generic;
@@ -92,6 +93,13 @@ namespace DialogueProgrammer.Views
         private void OptionLayoutUpdated(DialogueOptionVM optionVM, Point loc)
         {
             _layoutUpdatedOption(this, optionVM, loc);
+        }
+
+        public ExportSerializedNode ToExportSerialized(int Id)
+        {
+            var output = new ExportSerializedNode() { NodeId = Id, DialogueText = TerminalVM.TerminalText };
+            output.Options = OptionDialogue.Select(e => new ExportSerializedOption() { ResponseId = (int)e.OptionId, OptionText = e.OptionText }).ToArray();
+            return output;
         }
 
         private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")

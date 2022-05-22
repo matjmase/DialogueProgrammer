@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DialogueProgrammer.Serialization.Project;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -83,6 +84,15 @@ namespace DialogueProgrammer.Models
                 return ScalerHeight * BaseHeight;
             }
         }
+
+        #region Conversions
+
+        public ProjectSerializedDimensionScaler ToProjectSerialized()
+        {
+            return new ProjectSerializedDimensionScaler() { BaseWidth = BaseWidth, BaseHeight = BaseHeight, ScalerWidth = ScalerWidth, ScalerHeight = ScalerHeight };
+        }
+
+        #endregion
 
         private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
         {

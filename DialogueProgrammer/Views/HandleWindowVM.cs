@@ -1,4 +1,6 @@
 ﻿using DialogueProgrammer.Common;
+using DialogueProgrammer.Serialization.Export;
+using DialogueProgrammer.Serialization.Project;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -105,6 +107,13 @@ namespace DialogueProgrammer.Views
         private void MouseLeave(MouseEventArgs args)
         {
             _isMoving = false;
+        }
+
+        public ProjectSerializedNode ToProjectSerialized(int Id)
+        { 
+            var output = new ProjectSerializedNode() { NodeId = Id, DialogueText= _node.TerminalVM.TerminalText, CanvasLeft = CanvasLeft, CanvasTop = CanvasTop };
+            output.Options = _node.OptionDialogue.Select(e => new ExportSerializedOption() { ResponseId = e.OptionId??-1, OptionText = e.OptionText }).ToArray();
+            return output;
         }
 
         private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")

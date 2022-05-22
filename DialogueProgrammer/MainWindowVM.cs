@@ -1,7 +1,8 @@
 ﻿using DialogueProgrammer.Common;
 using DialogueProgrammer.Common.Extensions;
 using DialogueProgrammer.Models;
-using DialogueProgrammer.Serialization;
+using DialogueProgrammer.Serialization.Export;
+using DialogueProgrammer.Serialization.Project;
 using DialogueProgrammer.Views;
 using DialogueProgrammer.Views.SubViews;
 using Microsoft.Win32;
@@ -44,6 +45,8 @@ namespace DialogueProgrammer
         public DelegateCommand ZoomIncCommand => new DelegateCommand((obj) => { CanvasSize.ScalerHeight *= 1.1; CanvasSize.ScalerWidth *= 1.1; });
         public DelegateCommand ZoomDecCommand => new DelegateCommand((obj) => { CanvasSize.ScalerHeight *= 0.9; CanvasSize.ScalerWidth *= 0.9; });
         public DelegateCommand ExportFileCommand => new DelegateCommand((obj) => ExportFile());
+        public DelegateCommand SaveProjectFileCommand => new DelegateCommand((obj) => SaveProjectFile());
+        public DelegateCommand LoadProjectFileCommand => new DelegateCommand((obj) => LoadProjectFile());
 
         private LinkingProgressVM _linkingProgress = new LinkingProgressVM();
         private CubicBezierArrowVM _previewLine = new CubicBezierArrowVM();
@@ -92,8 +95,13 @@ namespace DialogueProgrammer
 
         public MainWindowVM()
         {
-            NodeWindows.Add(new HandleWindowVM(RemoveWindow, new DialogueNodeSeedVM(OptionCollectionChanged, AttemptToLinkToNode, InitOptionLink, ClearTerminalLinks, ClearOptionLink, LayoutUpdateForOption, LayoutUpdateForTerminal)));
+            AddSeedWindow();
             LabelResponseIds();
+        }
+
+        private void AddSeedWindow()
+        {
+            NodeWindows.Add(new HandleWindowVM(RemoveWindow, new DialogueNodeSeedVM(OptionCollectionChanged, AttemptToLinkToNode, InitOptionLink, ClearTerminalLinks, ClearOptionLink, LayoutUpdateForOption, LayoutUpdateForTerminal)));
         }
 
         private void AddWindow()
@@ -329,11 +337,11 @@ namespace DialogueProgrammer
 
         #region SaveFile
 
-        private SerializedNode[] ConvertToSerialized()
+        private ExportSerializedNode[] ConvertToSerializedExport()
         {
             try
             {
-                var outputCollection = new LinkedList<SerializedNode>();
+                var outputCollection = new LinkedList<ExportSerializedNode>();
                 var responseVMs = new Dictionary<int, DialogueOptionVM>();
                 var nodeVMs = new Dictionary<DialogueNodeVM, int>();
 
@@ -354,8 +362,7 @@ namespace DialogueProgrammer
                 {
                     var focus = nodes.Dequeue();
 
-                    var newSerialized = new SerializedNode() { NodeId = nodeIdCounter, DialogueText = focus.TerminalVM.TerminalText };
-                    newSerialized.Options = focus.OptionDialogue.Select(e => new SerializedOption() { ResponseId = (int)e.OptionId, OptionText = e.OptionText }).ToArray();
+                    var newSerialized = focus.ToExportSerialized(nodeIdCounter);
 
                     outputCollection.AddLast(newSerialized);
                     foreach (var option in focus.OptionDialogue)
@@ -400,9 +407,48 @@ namespace DialogueProgrammer
             }
         }
 
-        private void WriteFile(string fileName, SerializedNode[] output, bool json = false)
-        {
 
+        private ProjectSerializedNode[] ConvertToSerializedProject()
+        {
+            var responseVMs = new Dictionary<DialogueOptionVM, ExportSerializedOption>();
+            var nodeVMs = new Dictionary<DialogueNodeVM, int>();
+
+            var output = new ProjectSerializedNode[NodeWindows.Count];
+
+            for (var i = 0; i < NodeWindows.Count; i++)
+            {
+                output[i] = NodeWindows[i].ToProjectSerialized(i);
+
+                nodeVMs.Add(NodeWindows[i].Node, i);
+                for (var j = 0; j < output[i].Options.Length; j++)
+                {
+                    responseVMs.Add(NodeWindows[i].Node.OptionDialogue[j], output[i].Options[j]);
+                }
+            }
+
+            foreach (var window in NodeWindows)
+            {
+                var serialized = output[nodeVMs[window.Node]];
+                var options = window.Node.OptionDialogue;
+
+                foreach (var option in options)
+                {
+                    if (option.LinkedNode != null)
+                    {
+                        responseVMs[option].PointToNode = nodeVMs[option.LinkedNode];
+                    }
+                    else
+                    {
+                        responseVMs[option].PointToNode = -1;
+                    }
+                }
+            }
+
+            return output;
+        }
+
+        private void WriteFile(string fileName, object output, bool json = false)
+        {
             if (json)
             {
                 using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
@@ -417,7 +463,7 @@ namespace DialogueProgrammer
             {
                 using (FileStream fileStream = new FileStream(fileName, FileMode.Create))
                 {
-                    XmlSerializer ser = new XmlSerializer(typeof(SerializedNode[]));
+                    XmlSerializer ser = new XmlSerializer(typeof(ExportSerializedNode[]));
                     ser.Serialize(fileStream, output);
                 }
             }
@@ -431,7 +477,7 @@ namespace DialogueProgrammer
 
             if (saveFile.ShowDialog() == true)
             {
-                var output = ConvertToSerialized();
+                var output = ConvertToSerializedExport();
 
                 switch (saveFile.FilterIndex)
                 {
@@ -445,6 +491,148 @@ namespace DialogueProgrammer
                         throw new NotImplementedException("untracked filter type");
                 }
             }
+        }
+
+        private void SaveProjectFile()
+        {
+            SaveFileDialog saveFile = new SaveFileDialog();
+            saveFile.Filter = "dialogue file (*.diag)|*.diag";
+            saveFile.RestoreDirectory = true;
+
+            if (saveFile.ShowDialog() == true)
+            {
+                var output = ToSerializedMainWindow();
+
+                WriteFile(saveFile.FileName, output, true);
+            }
+        }
+
+        #endregion
+
+        #region LoadFile
+
+        private void LoadProjectFile()
+        {
+            OpenFileDialog openFile = new OpenFileDialog();
+            openFile.Filter = "dialogue file (*.diag)|*.diag";
+            openFile.RestoreDirectory = true;
+
+            if (openFile.ShowDialog() == true)
+            {
+                var file = openFile.FileName;
+                var mainWindowModel = DeserializeFile(file);
+
+                if (mainWindowModel != null)
+                {
+                    InitializeLoadedModel(mainWindowModel);
+                }
+            }
+        }
+
+        private ProjectSerializedMainWindow DeserializeFile(string file)
+        {
+            ProjectSerializedMainWindow output = null;
+
+            try
+            {
+                using (FileStream fileStream = new FileStream(file, FileMode.Open))
+                using (StreamReader sr = new StreamReader(fileStream))
+                using (JsonTextReader reader = new JsonTextReader(sr))
+                {
+                    JsonSerializer ser = new JsonSerializer();
+                    output = ser.Deserialize<ProjectSerializedMainWindow>(reader);
+                }
+            }
+            catch (Exception ex)
+            {
+
+                MessageBox.Show(ex.Message);
+            }
+
+            return output;
+        }
+
+        private void InitializeLoadedModel(ProjectSerializedMainWindow mainWindowModel)
+        {
+            CanvasSize = mainWindowModel.Canvas.ToDimensionScaler();
+
+            NodeWindows.Clear();
+            ConnectionLines.Clear();
+            _optionsToTerminalMap.Clear();
+            _terminalToOptionsMap.Clear();
+
+            var serializedToDialogueModel = new Dictionary<ProjectSerializedNode, DialogueNodeVM>();
+            var indexToSerialized = new Dictionary<int, ProjectSerializedNode>();
+            var serializedToOptionModel = new Dictionary<ExportSerializedOption, DialogueOptionVM>();
+
+            var first = true;
+            foreach (var node in mainWindowModel.Nodes)
+            {
+                if (first)
+                {
+                    AddSeedWindow();
+                }
+                else
+                {
+                    AddWindow();
+                }
+
+                var currentWindow = NodeWindows.Last();
+
+                serializedToDialogueModel.Add(node, currentWindow.Node);
+                indexToSerialized.Add(node.NodeId, node);
+
+                currentWindow.CanvasLeft = node.CanvasLeft;
+                currentWindow.CanvasTop = node.CanvasTop;
+
+                currentWindow.Node.TerminalVM.TerminalText = node.DialogueText;
+                currentWindow.Node.OptionDialogue.Clear();
+
+                foreach (var option in node.Options)
+                {
+                    currentWindow.Node.AddNewOption();
+
+                    var currentOption = currentWindow.Node.OptionDialogue.Last();
+                    currentOption.OptionText = option.OptionText;
+
+                    serializedToOptionModel.Add(option, currentOption);
+                }
+
+                first = false;
+            }
+
+            try
+            {
+                foreach (var node in mainWindowModel.Nodes)
+                { 
+                    foreach(var option in node.Options)
+                    {
+                        if (option.PointToNode == -1)
+                            continue;
+
+                        InitOptionLink(serializedToDialogueModel[node], serializedToOptionModel[option], new Point());
+                        AttemptToLinkToNode(serializedToDialogueModel[indexToSerialized[option.PointToNode]], new Point());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NodeWindows.Clear();
+                AddSeedWindow();
+            }
+        }
+
+        #endregion
+
+        #region Conversions
+
+        private ProjectSerializedMainWindow ToSerializedMainWindow()
+        {
+            return new ProjectSerializedMainWindow()
+            {
+                Canvas = _canvasSize.ToProjectSerialized(),
+                Nodes = ConvertToSerializedProject()
+            };
         }
 
         #endregion

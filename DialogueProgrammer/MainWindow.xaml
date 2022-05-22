@@ -202,7 +202,16 @@
                 <Button Grid.Column="1" Content="- Zoom" Command="{Binding ZoomDecCommand}"></Button>
             </Grid>
 
-            <Button Grid.Column="4" Content="Export" Command="{Binding ExportFileCommand}"></Button>
+            <Grid Grid.Column="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="Export" Command="{Binding ExportFileCommand}"></Button>
+                <Button Grid.Column="1" Content="Save Proj" Command="{Binding SaveProjectFileCommand}"></Button>
+                <Button Grid.Column="2" Content="Load Proj" Command="{Binding LoadProjectFileCommand}"></Button>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

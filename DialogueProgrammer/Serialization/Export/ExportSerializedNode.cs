@@ -5,16 +5,16 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 
-namespace DialogueProgrammer.Serialization
+namespace DialogueProgrammer.Serialization.Export
 {
     [Serializable()]
-    public class SerializedNode
+    public class ExportSerializedNode
     {
         [XmlElement]
         public int NodeId { get; set; }
         [XmlElement]
         public string DialogueText { get; set; }
         [XmlArray]
-        public SerializedOption[] Options { get; set; }
+        public ExportSerializedOption[] Options { get; set; }
     }
 }
