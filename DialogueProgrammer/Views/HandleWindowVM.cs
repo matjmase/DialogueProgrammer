@@ -95,6 +95,16 @@ namespace DialogueProgrammer.Views
 
         private void MouseMove(MouseEventArgs args)
         {
+            MoveWindow(args);
+        }
+
+        private void MouseLeave(MouseEventArgs args)
+        {
+            MoveWindow(args);
+        }
+
+        private void MoveWindow(MouseEventArgs args)
+        {
             if (_isMoving && args.LeftButton == MouseButtonState.Pressed)
             {
                 var newPoint = args.GetPosition((IInputElement)args.OriginalSource);
@@ -102,11 +112,6 @@ namespace DialogueProgrammer.Views
                 CanvasLeft += dif.X;
                 CanvasTop += dif.Y;
             }
-        }
-
-        private void MouseLeave(MouseEventArgs args)
-        {
-            _isMoving = false;
         }
 
         public ProjectSerializedNode ToProjectSerialized(int Id)
